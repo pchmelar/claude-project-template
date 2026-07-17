@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Bash",
+      "WebSearch",
+      "WebFetch"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -n \"$DEVBOX_SHELL_ENABLED\" ] || echo '{\"systemMessage\":\"⚠️ Claude was started outside the devbox shell — exit, then: devbox shell && claude\",\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"IMPORTANT: This session was started OUTSIDE the devbox shell — the project toolchain and .env are NOT loaded. Known Claude Code bugs can prevent the startup warning from rendering in the UI, so YOU are the only reliable channel: you MUST open your very first reply with this warning and tell the user to exit and restart via: devbox shell, then claude — before addressing their actual request. Repeat the warning whenever they ask to run builds, tests, or anything that depends on the toolchain.\"}}'"
+          }
+        ]
+      }
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "autoAllowBashIfSandboxed": true,
+    "allowUnsandboxedCommands": false,
+    "filesystem": {
+      "allowWrite": [
+        ".",
+        "/private/tmp/claude-{{UID}}",
+        "/private/var/folders"
+      ],
+      "denyRead": [
+        "~"
+      ],
+      "allowRead": [
+        ".",
+        "~/.claude/shell-snapshots",
+        "~/.claude/session-env",
+        "~/.gitconfig",
+        "~/.config/git"
+      ]
+    },
+    "network": {
+      "allowedDomains": [
+        "github.com",
+        "*.github.com",
+        "*.githubusercontent.com",
+        "cache.nixos.org",
+        "*.cachix.org",
+        "releases.nixos.org"
+      ]
+    }
+  }
+}

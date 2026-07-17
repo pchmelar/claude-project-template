@@ -1,0 +1,11 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.17.3/.schema/devbox.schema.json",
+  "packages": [],
+  "shell": {
+    "init_hook": [
+      "export DEVELOPER_DIR=/Library/Developer/CommandLineTools",
+      "[ -f .env ] && set -a && . ./.env && set +a || true",
+      "echo '📦 {{PROJECT_NAME}} dev shell ready.'"
+    ]
+  }
+}
