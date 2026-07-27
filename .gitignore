@@ -6,5 +6,8 @@
 # Devbox — declarations in git, artifacts out of git
 .devbox/
 
+# Overlay mode — the nested target repo
+repo/
+
 # macOS
 .DS_Store

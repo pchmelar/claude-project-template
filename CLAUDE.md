@@ -2,7 +2,7 @@
 
 Context for Claude Code sessions on **{{PROJECT_NAME}}**.
 
-Built from **claude-project-template v1** — read `TEMPLATE.md` first: it
+Built from **claude-project-template v2** — read `TEMPLATE.md` first: it
 defines the environment (devbox, `.env`, git-over-token), the protection
 model, and the working conventions (English artifacts, human-on-the-loop
 autonomy).

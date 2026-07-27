@@ -1,6 +1,6 @@
 # TEMPLATE.md
 
-**Template version: 1** · changelog at the bottom · projects record theirs in `CLAUDE.md`.
+**Template version: 2** · changelog at the bottom · projects record theirs in `CLAUDE.md`.
 
 Starter for projects where Claude Code works **autonomously inside one directory**
 (long sessions, big TODO lists, multiple agents) and the human only reviews
@@ -11,9 +11,7 @@ autonomy inside the project, hard walls everywhere else.**
 
 Human part (~5 minutes):
 
-1. Create a repo from this template (GitHub → "Use this template") and clone it
-   **via the HTTPS URL** — that sets `origin` correctly for token-based pushes
-   (`git@` remotes won't work in the sandbox).
+1. Create a repo from this template (GitHub → "Use this template") and clone it.
 2. Mint a **fine-grained PAT** at
    <https://github.com/settings/personal-access-tokens> — Only select
    repositories → this repo, Contents: Read and write, expiration at your
@@ -28,7 +26,10 @@ Claude's bootstrap (first session):
    `{{UID}}` in `.claude/settings.json` with the output of `id -u` — the
    settings edit needs the user's one-time approval. Settings reload live;
    no restart needed.
-6. Fill in `CLAUDE.md`, run boundary checks (project read/write with no
+6. Check that `origin` is an HTTPS URL — `git@` remotes can't push through
+   the sandbox. `.git/config` is write-protected, so if it's SSH, hand the
+   user a `git remote set-url origin https://…` one-liner to run.
+7. Fill in `CLAUDE.md`, run boundary checks (project read/write with no
    prompts; `~/.ssh` and sibling projects unreadable; git clean of warnings),
    then commit and push as the end-to-end verification.
 
@@ -36,6 +37,16 @@ Daily after that: `devbox shell` → `claude`, always in that order (toolchain +
 `.env` only exist inside; a SessionStart hook warns if Claude was started
 outside the shell). Add tools only via `devbox add <pkg>[@version]` — never
 `brew install`; `.devbox/` stays gitignored.
+
+## Overlay mode
+
+For working on an existing repo you don't fully own — same autonomy and
+protection, but nothing template-related ever enters that repo. Create
+`<xyz>-wrapper` from this template (private), put two PATs in `.env`
+(wrapper + target repo), then `devbox shell` → `claude` and say:
+**"Bootstrap an overlay over \<target repo URL\> into `repo/` per
+TEMPLATE.md."** As part of the bootstrap, Claude asks how you want to work
+with git in the nested repo (branching, PRs, what never to push).
 
 ## The protection model (`.claude/settings.json`)
 
@@ -59,7 +70,7 @@ Why the key lines exist:
   `WebFetch` is an acceptable trade — the worst leak is the repo-scoped token.
   The discipline that keeps this true: **tokens are always fine-grained, one per repo.**
 - `.git/config` + `.git/hooks` are hard-protected by Claude Code (code-execution
-  vectors) — hence step 5 above, and Claude pushes without `-u`.
+  vectors) — hence step 6 above, and Claude pushes without `-u`.
 - When a permission prompt appears, fix `settings.json` deliberately — don't
   rephrase commands around it, don't accumulate one-off allow rules.
 
@@ -112,6 +123,12 @@ this purpose.
 ---
 
 ## Changelog
+
+### v2 (2026-07-27)
+
+Added **overlay mode**: wrap the template around a clone of an existing repo
+so autonomy, sandbox, and devbox apply while that repo stays free of template
+files. Additive — existing projects need no migration.
 
 ### v1 (2026-07-17)
 
