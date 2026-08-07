@@ -1,6 +1,6 @@
 # TEMPLATE.md
 
-**Template version: 2** · changelog at the bottom · projects record theirs in `CLAUDE.md`.
+**Template version: 3** · changelog at the bottom · projects record theirs in `CLAUDE.md`.
 
 Starter for projects where Claude Code works **autonomously inside one directory**
 (long sessions, big TODO lists, multiple agents) and the human only reviews
@@ -35,8 +35,8 @@ Claude's bootstrap (first session):
 
 Daily after that: `devbox shell` → `claude`, always in that order (toolchain +
 `.env` only exist inside; a SessionStart hook warns if Claude was started
-outside the shell). Add tools only via `devbox add <pkg>[@version]` — never
-`brew install`; `.devbox/` stays gitignored.
+outside the shell). New tools come from `devbox add`, which only the human can
+run — see [Devbox](#devbox).
 
 ## Overlay mode
 
@@ -92,12 +92,21 @@ git -c credential.helper= \
 - No SSH (doesn't traverse the sandbox proxy — and must stay that way: the
   personal key can touch every repo; unsandboxing git would be a code-exec hole).
 
-## macOS/devbox quirk
+## Devbox
 
-- `devbox.json`'s `init_hook` exports
-  `DEVELOPER_DIR=/Library/Developer/CommandLineTools` — keep that line.
-- Why: nix packages otherwise hijack the Apple toolchain pointer and
-  `/usr/bin/git` fails with `error: tool 'git' not found`.
+- Tools come from `devbox add <pkg>[@version]`, never `brew`. `devbox.json` +
+  `devbox.lock` are committed, `.devbox/` is not.
+
+- **`devbox add` is a human action.** Multi-user nix reaches its daemon over a
+  unix socket, which the sandbox blocks by design — it fails with `cannot
+  connect to socket … Operation not permitted` and no config fixes that. Claude
+  stops, asks the human to run `devbox add <pkg>` in another terminal, and
+  **never works around it**: no `brew`, no binaries fetched into the project,
+  no loosening the sandbox.
+
+- Keep `init_hook`'s `DEVELOPER_DIR=/Library/Developer/CommandLineTools`: nix
+  packages otherwise hijack the Apple toolchain pointer and `/usr/bin/git`
+  fails with `error: tool 'git' not found`.
 
 ## Conventions
 
@@ -123,6 +132,12 @@ this purpose.
 ---
 
 ## Changelog
+
+### v3 (2026-08-07)
+
+Documented that **`devbox add` is a human action** — multi-user nix needs a
+unix socket the sandbox blocks by design — with an explicit ban on working
+around it. Migration: copy the `## Devbox` section over; no config changes.
 
 ### v2 (2026-07-27)
 
