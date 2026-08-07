@@ -1,6 +1,7 @@
 # TEMPLATE.md
 
-**Template version: 3** · changelog at the bottom · projects record theirs in `CLAUDE.md`.
+**Template version: 4** · changelog at the bottom · projects record theirs in `CLAUDE.md`.
+Source: <https://github.com/pchmelar/claude-project-template> (public).
 
 Starter for projects where Claude Code works **autonomously inside one directory**
 (long sessions, big TODO lists, multiple agents) and the human only reviews
@@ -120,18 +121,21 @@ git -c credential.helper= \
 
 ## Updating a project to a newer template version
 
-Never git-merge from the template — projects diverge. In the project, tell Claude:
-
-> Update this project to template vN — changelog is in claude-project-template/TEMPLATE.md.
-
-Claude walks the changelog deltas between the recorded and target version with
-you, applies them on top of the project's customizations, bumps the marker in
-`CLAUDE.md`, and commits. Changelog entries are written as migration notes for
-this purpose.
+In the project, tell Claude: **"Check for template updates."** Claude `WebFetch`es
+`https://raw.githubusercontent.com/pchmelar/claude-project-template/main/TEMPLATE.md`
+(public, no token needed) and applies the changelog entries above the project's
+recorded version — they're written as migration notes. Never git-merge from the
+template; projects diverge.
 
 ---
 
 ## Changelog
+
+### v4 (2026-08-07)
+
+Template repo made **public**; updates now come from its raw URL instead of a
+sibling checkout. Migration: replace the `## Updating…` section and the
+"Built from" line in `CLAUDE.md`.
 
 ### v3 (2026-08-07)
 
