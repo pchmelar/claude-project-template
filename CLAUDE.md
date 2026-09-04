@@ -2,7 +2,7 @@
 
 Context for Claude Code sessions on **{{PROJECT_NAME}}**.
 
-Built from **claude-project-template v4**
+Built from **claude-project-template v5**
 (<https://github.com/pchmelar/claude-project-template> — fetch its raw
 `TEMPLATE.md` to check for a newer version) — read `TEMPLATE.md` first: it
 defines the environment (devbox, `.env`, git-over-token), the protection model,

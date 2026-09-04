@@ -1,6 +1,6 @@
 # TEMPLATE.md
 
-**Template version: 4** · changelog at the bottom · projects record theirs in `CLAUDE.md`.
+**Template version: 5** · changelog at the bottom · projects record theirs in `CLAUDE.md`.
 Source: <https://github.com/pchmelar/claude-project-template> (public).
 
 Starter for projects where Claude Code works **autonomously inside one directory**
@@ -72,6 +72,11 @@ Why the key lines exist:
   The discipline that keeps this true: **tokens are always fine-grained, one per repo.**
 - `.git/config` + `.git/hooks` are hard-protected by Claude Code (code-execution
   vectors) — hence step 6 above, and Claude pushes without `-u`.
+- **Read the web with `WebFetch`/`WebSearch`, never `curl`/`wget`.** They skip
+  the sandbox network layer and never prompt; Bash egress is capped by
+  `allowedDomains`, so shell fetches prompt per domain, session and agent —
+  a subagent fan-out floods you. Widen `allowedDomains` only for toolchain
+  traffic, never to read a page.
 - When a permission prompt appears, fix `settings.json` deliberately — don't
   rephrase commands around it, don't accumulate one-off allow rules.
 
@@ -130,6 +135,13 @@ template; projects diverge.
 ---
 
 ## Changelog
+
+### v5 (2026-09-05)
+
+Web reads must use **`WebFetch`/`WebSearch`, not `curl`/`wget`** — Bash egress
+is capped by the domain allowlist, so shell fetching floods you with permission
+prompts. Migration: copy the new bullet into the protection-model section; no
+config changes.
 
 ### v4 (2026-08-07)
 
