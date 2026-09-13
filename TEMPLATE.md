@@ -1,12 +1,13 @@
 # TEMPLATE.md
 
-**Template version: 5** · changelog at the bottom · projects record theirs in `CLAUDE.md`.
+**Template version: 6** · changelog at the bottom · projects record theirs in `CLAUDE.md`.
 Source: <https://github.com/pchmelar/claude-project-template> (public).
 
 Starter for projects where Claude Code works **autonomously inside one directory**
 (long sessions, big TODO lists, multiple agents) and the human only reviews
 results — **human-on-the-loop**, not human-in-the-loop. Core idea: **maximum
-autonomy inside the project, hard walls everywhere else.**
+autonomy, guarded by auto mode's classifier and narrowly scoped credentials**
+rather than an OS sandbox.
 
 ## Spin up a new project
 
@@ -18,97 +19,89 @@ Human part (~5 minutes):
    repositories → this repo, Contents: Read and write, expiration at your
    discretion. Then `cp .env.example .env` and put it in as `GITHUB_TOKEN`
    (edit the file directly; never paste tokens into the conversation).
-3. `devbox shell` → `claude`, and say: **"Bootstrap this project per TEMPLATE.md."**
+3. `claude` in the project directory, and say: **"Bootstrap this project per TEMPLATE.md."**
 
 Claude's bootstrap (first session):
 
 4. Ask the user for the project name and a short description.
 5. Replace `{{PROJECT_NAME}}` (`README.md`, `CLAUDE.md`, `devbox.json`) and
    `{{UID}}` in `.claude/settings.json` with the output of `id -u` — the
-   settings edit needs the user's one-time approval. Settings reload live;
-   no restart needed.
-6. Check that `origin` is an HTTPS URL — `git@` remotes can't push through
-   the sandbox. `.git/config` is write-protected, so if it's SSH, hand the
-   user a `git remote set-url origin https://…` one-liner to run.
-7. Fill in `CLAUDE.md`, run boundary checks (project read/write with no
-   prompts; `~/.ssh` and sibling projects unreadable; git clean of warnings),
+   settings edit may need the user's approval (`.claude/` is a protected
+   path). Settings reload live; no restart needed.
+6. Check that `origin` is an HTTPS URL — pushes go through the repo-scoped
+   PAT, never the personal SSH key. If it's `git@`, switch it with
+   `git remote set-url origin https://…`.
+7. Fill in `CLAUDE.md`, run checks (devbox toolchain present in Bash —
+   `DEVBOX_SHELL_ENABLED=1`; `Read` of `.env` denied; git clean of warnings),
    then commit and push as the end-to-end verification.
 
-Daily after that: `devbox shell` → `claude`, always in that order (toolchain +
-`.env` only exist inside; a SessionStart hook warns if Claude was started
-outside the shell). New tools come from `devbox add`, which only the human can
-run — see [Devbox](#devbox).
+Daily after that: just `claude` in the project directory — a SessionStart hook
+loads the devbox toolchain and `.env` into every Bash command, so `devbox shell`
+first is optional. See [Devbox](#devbox).
 
 ## Overlay mode
 
 For working on an existing repo you don't fully own — same autonomy and
-protection, but nothing template-related ever enters that repo. Create
+guardrails, but nothing template-related ever enters that repo. Create
 `<xyz>-wrapper` from this template (private), put two PATs in `.env`
-(wrapper + target repo), then `devbox shell` → `claude` and say:
+(wrapper + target repo), then `claude` and say:
 **"Bootstrap an overlay over \<target repo URL\> into `repo/` per
 TEMPLATE.md."** As part of the bootstrap, Claude asks how you want to work
 with git in the nested repo (branching, PRs, what never to push).
 
-## The protection model (`.claude/settings.json`)
+## The protection model
 
-Two layers with different jobs:
+**No OS sandbox — auto mode is the gate.** A classifier model reviews every
+shell command and network action before it runs and blocks what goes beyond
+the task, destroys things, or leaks data (`curl | bash`, force pushes, printing
+tokens, sensitive files leaving the machine, …). Reads and in-project edits
+skip it. Boundaries you state in the conversation ("don't push yet") are
+enforced by the classifier too.
 
-- **Permissions** — *may this run without asking?* `defaultMode: "acceptEdits"` +
-  allow `Bash`, `WebSearch`, `WebFetch`. In-project reads/edits are free;
-  anything outside the project prompts the human.
-- **Sandbox** — *what can a running command touch?* Writes: project + temp roots
-  only. Reads: home directory denied except the project and four runtime paths
-  (`~/.claude/shell-snapshots`, `~/.claude/session-env` — Bash breaks without
-  them; `~/.gitconfig`, `~/.config/git` — git reads them). Network: toolchain
-  allowlist (Bash only — WebSearch/WebFetch are unaffected).
+Why no sandbox: devbox/nix (daemon socket, binary caches, shell env) kept
+colliding with it, and the constant exceptions cost more than the containment
+bought. The accepted trade-off: commands *can* read the home directory, so the
+worst case of a fooled classifier is bounded by what credentials are reachable.
+The discipline that keeps that small: **tokens are always fine-grained, one
+per repo; git never uses the personal SSH key.**
 
-Why the key lines exist:
+`.claude/settings.json` adds a few hard rules on top of the classifier:
 
-- `failIfUnavailable: true` — no sandbox → Claude Code refuses to start.
-  This is what makes the blanket `Bash` allow safe.
-- `denyRead: ["~"]` — anti-exfiltration: an injected agent can't read `~/.ssh`,
-  other projects, or browser profiles. With reads locked down, unrestricted
-  `WebFetch` is an acceptable trade — the worst leak is the repo-scoped token.
-  The discipline that keeps this true: **tokens are always fine-grained, one per repo.**
-- `.git/config` + `.git/hooks` are hard-protected by Claude Code (code-execution
-  vectors) — hence step 6 above, and Claude pushes without `-u`.
-- **Read the web with `WebFetch`/`WebSearch`, never `curl`/`wget`.** They skip
-  the sandbox network layer and never prompt; Bash egress is capped by
-  `allowedDomains`, so shell fetches prompt per domain, session and agent —
-  a subagent fan-out floods you. Widen `allowedDomains` only for toolchain
-  traffic, never to read a page.
-- When a permission prompt appears, fix `settings.json` deliberately — don't
-  rephrase commands around it, don't accumulate one-off allow rules.
-
-`settings.json` is committed and owned by the project — extend it freely
-(network domains for new package sources, MCP servers, …) as the project evolves.
+- `allow: WebSearch` — read-only, no reason to review it.
+- `allow: Read(//private/tmp/claude-{{UID}}/**)`, `Read(//tmp/claude-{{UID}}/**)`
+  — Claude Code's own temp root (background task output, scratchpad); without
+  it the first read outside the project prompts.
+- `deny: Read(//**/.env)` — secrets never enter the transcript through `Read`;
+  commands get them from the environment instead.
+- `ask: git push --force / -f` (all argument orders) — rewriting remote history
+  always gets a human prompt, whatever the classifier thinks.
 
 ## Git
 
 - Claude commits at natural milestones and pushes over HTTPS with the token
-  from `.env` via an inline credential helper (token never in argv/logs):
+  from `.env` via an inline credential helper (token never in argv/logs).
+  `GITHUB_TOKEN` is already in the Bash environment (hook → devbox `init_hook`):
 
 ```bash
-set -a; source .env; set +a
 git -c credential.helper= \
   -c credential.helper='!f(){ echo "username=<gh-user>"; echo "password=${GITHUB_TOKEN}"; };f' \
   push origin <branch>
 ```
 
-- No SSH (doesn't traverse the sandbox proxy — and must stay that way: the
-  personal key can touch every repo; unsandboxing git would be a code-exec hole).
+- No SSH: the personal key can touch every repo; the PAT only this one.
 
 ## Devbox
 
-- Tools come from `devbox add <pkg>[@version]`, never `brew`. `devbox.json` +
+- Tools come from `devbox add <pkg>[@version]`, never `brew` and never binaries
+  fetched into the project. Claude runs `devbox add` itself. `devbox.json` +
   `devbox.lock` are committed, `.devbox/` is not.
 
-- **`devbox add` is a human action.** Multi-user nix reaches its daemon over a
-  unix socket, which the sandbox blocks by design — it fails with `cannot
-  connect to socket … Operation not permitted` and no config fixes that. Claude
-  stops, asks the human to run `devbox add <pkg>` in another terminal, and
-  **never works around it**: no `brew`, no binaries fetched into the project,
-  no loosening the sandbox.
+- The SessionStart hook appends
+  `eval "$(devbox shellenv --init-hook --config <project>)"` and
+  `export DEVBOX_SHELL_ENABLED=1` to `$CLAUDE_ENV_FILE`, which Claude Code
+  sources before each Bash command. Result: toolchain + `.env` (loaded by
+  `init_hook`) are present however `claude` was launched, and packages added
+  mid-session are available on the next command.
 
 - Keep `init_hook`'s `DEVELOPER_DIR=/Library/Developer/CommandLineTools`: nix
   packages otherwise hijack the Apple toolchain pointer and `/usr/bin/git`
@@ -135,6 +128,13 @@ template; projects diverge.
 ---
 
 ## Changelog
+
+### v6 (2026-09-14)
+
+**Sandbox removed, auto mode instead**; the SessionStart hook now loads the
+devbox env instead of warning. Drops the v3 and v5 rules. Migration: take
+`.claude/settings.json` from the template (keep project additions, re-fill
+`{{UID}}`) and copy all sections except Conventions.
 
 ### v5 (2026-09-05)
 
