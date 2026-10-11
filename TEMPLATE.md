@@ -1,6 +1,6 @@
 # TEMPLATE.md
 
-**Template version: 6** · changelog at the bottom · projects record theirs in `CLAUDE.md`.
+**Template version: 7** · changelog at the bottom · projects record theirs in `CLAUDE.md`.
 Source: <https://github.com/pchmelar/claude-project-template> (public).
 
 Starter for projects where Claude Code works **autonomously inside one directory**
@@ -107,6 +107,22 @@ git -c credential.helper= \
   packages otherwise hijack the Apple toolchain pointer and `/usr/bin/git`
   fails with `error: tool 'git' not found`.
 
+### On an Intel Mac
+
+Nixpkgs 26.11 dropped x86_64-darwin, and an unpinned `devbox.json` follows
+nixpkgs-unstable, so on Intel the dev shell fails with `Nixpkgs 26.11 has
+dropped support for x86_64-darwin`. 26.05 is the last release that supports
+Intel, so pin it in `devbox.json` for good:
+
+```json
+"nixpkgs": { "commit": "68e5b9f7e82a76a5171d10b5d316e0ae5e1df6e9" },
+```
+
+Add packages as explicit flake refs on that commit,
+`devbox add github:NixOS/nixpkgs/68e5b9f7e82a76a5171d10b5d316e0ae5e1df6e9#<pkg>`,
+never `<pkg>@latest`: devbox resolves `latest` through its own search service,
+which ignores the pin and picks 26.11 again. Apple Silicon needs none of this.
+
 ## Conventions
 
 - **Language:** conversation in any language; every artifact (docs, code,
@@ -128,6 +144,13 @@ template; projects diverge.
 ---
 
 ## Changelog
+
+### v7 (2026-10-11)
+
+**Devbox on an Intel Mac** — a new subsection under Devbox. Migration: on an
+Intel Mac only, add the `nixpkgs` pin to `devbox.json` and re-add any
+`<pkg>@latest` packages as flake refs on that commit. Nothing to do on Apple
+Silicon.
 
 ### v6 (2026-09-14)
 
